@@ -1,0 +1,17 @@
+<package>
+  <name>sphero_move</name>
+  <version>0.0.2</version>
+  <description>
+	A little unfinished project using sphero_ros to play with the position of a sphero captured by a webcam
+  </description>
+  <author>Boris Bidault</author>
+  <maintainer email="boris.bidault@gmail.com">Boris Bidault</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+</package>

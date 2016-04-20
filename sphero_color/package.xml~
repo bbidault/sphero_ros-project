@@ -1,0 +1,16 @@
+<package>
+  <name>sphero_cv</name>
+  <version>0.1.0</version>
+  <description>
+	A little project using sphero_ros to set the color of sphero using its position
+  </description>
+  <author>Boris Bidault</author>
+  <maintainer email="boris.bidault@gmail.com">Boris Bidault</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+</package>

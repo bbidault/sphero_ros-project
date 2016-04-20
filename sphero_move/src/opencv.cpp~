@@ -1,0 +1,136 @@
+#include "ros/ros.h"
+#include "std_msgs/ColorRGBA.h"
+#include "geometry_msgs/Twist.h"
+
+#include <sstream>
+
+#include "opencv/cvaux.h"
+#include "opencv/highgui.h"
+#include "opencv/cxcore.h"
+#include <stdio.h>
+
+#include <stdlib.h>
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Int32MultiArray.h"
+
+#include <iostream>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "math.h"
+
+
+
+using namespace cv;
+using namespace std;
+
+
+int main(int argc, char **argv)
+{
+
+	ros::init(argc, argv, "opencv");
+	ros::NodeHandle n;
+	ros::Publisher pub = n.advertise<std_msgs::Int32MultiArray>("array",100);
+
+	//WEBCAM INITIALISATION
+  	VideoCapture cap(1); //capture the video from web cam
+  	if ( !cap.isOpened() )  // if not success, exit program
+    	{
+      		cout << "Cannot open the web cam" << endl;
+     		return -1;
+    	}
+
+
+  	//CONTROL WINDOW
+  	namedWindow("Control", CV_WINDOW_AUTOSIZE); //create a window called "Control"
+  	int iLowH = 0;
+  	int iHighH = 255;
+  	int iLowS = 0; 
+  	int iHighS = 255;
+  	int iLowV = 255;
+  	int iHighV = 255;
+  	//Create trackbars in "Control" window
+  	cvCreateTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
+  	cvCreateTrackbar("HighH", "Control", &iHighH, 179);
+  	cvCreateTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
+  	cvCreateTrackbar("HighS", "Control", &iHighS, 255);
+  	cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
+  	cvCreateTrackbar("HighV", "Control", &iHighV, 255);
+
+  	namedWindow("Original", CV_WINDOW_AUTOSIZE); //create a window called "Control"
+
+	while (ros::ok())
+  	{ 
+
+		Mat imgOriginal;
+
+    		bool bSuccess = cap.read(imgOriginal); // read a new frame from video
+
+      		if (!bSuccess) //if not success, break loop
+        	{
+	  		cout << "Cannot read a frame from video stream" << endl;
+	  		return 0;
+        	}
+
+      		Mat imgHSV;
+
+      		cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV); //Convert the captured frame from BGR to HSV
+
+		Mat imgThresholded;
+
+		inRange(imgHSV, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), imgThresholded); //Threshold the image
+
+		//morphological opening (remove small objects from the foreground)
+      		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+      		dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) ); 
+
+      		//morphological closing (fill small holes in the foreground)
+      		dilate( imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(15,15)) ); 
+      		erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(15,15)) );
+
+		Moments oMoments = moments(imgThresholded);
+
+      		double dM01 = oMoments.m01;
+      		double dM10 = oMoments.m10;
+      		double dArea = oMoments.m00;
+
+      		float posX, posY, taille;
+
+      		if (dArea > 10000)
+		{
+	  		//calculate the position of the ball
+	  		posX = dM10 / dArea ;
+	  		posY = dM01 / dArea;
+	  		taille = (float)sqrt( dArea/3.14)/15;
+		}
+
+      		imshow("Original", imgOriginal); 	//show the original image
+      		imshow("Thresholded", imgThresholded);
+
+
+		std_msgs::Int32MultiArray array;
+		array.data.clear();
+
+		array.data.push_back(posX);
+		array.data.push_back(posY);
+		array.data.push_back(taille);
+		
+		pub.publish(array);
+
+    		ros::spinOnce();
+
+
+    		if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+		{
+			break; 
+		}
+
+	}
+	
+	return 0;
+
+}
+
+
+
+
